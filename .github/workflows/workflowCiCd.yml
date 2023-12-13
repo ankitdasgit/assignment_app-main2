@@ -3,7 +3,7 @@ name: Deploy to Amazon ECS
 on:
   push:
     branches:
-      - deployThroughCi/cd
+      - main
 jobs:
   deploy:
     name: Deploy
