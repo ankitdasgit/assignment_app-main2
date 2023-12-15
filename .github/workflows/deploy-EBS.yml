@@ -22,10 +22,6 @@ jobs:
       - name: Generate deployment package
         run: zip -r deploy.zip . -x '*.git*'
 
-      - name: Deploy to AWS Elastic Beanstalk
-        run: |
-          aws elasticbeanstalk create-application-version --application-name YourAppName --version-label v1 --source-bundle S3Bucket=your-bucket-name,S3Key=your-build-output.zip
-          aws elasticbeanstalk update-environment --application-name YourAppName --environment-name YourEnvironmentName --version-label v1  
 
       - name: Deploy to EB
         uses: einaregilsson/beanstalk-deploy@v21
