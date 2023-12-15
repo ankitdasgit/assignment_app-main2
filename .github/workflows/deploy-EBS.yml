@@ -3,7 +3,7 @@ name: Deploy to Amazon EBS
 on:
   push:
     branches:
-      - deploy-EBS
+      - deployEBS
   
 jobs:
   deploy:
