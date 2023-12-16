@@ -16,21 +16,77 @@ jobs:
       AWS_REGION: 'ap-northeast-1' 
       
     steps:
-      - name: Checkout source code
+      - name: Checkout
         uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
 
-      - name: Generate deployment package
-        run: zip -r deploy.zip . -x '*.git*'
-
-
-      - name: Deploy to EB
-        uses: einaregilsson/beanstalk-deploy@v21
         with:
-          aws_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          application_name: ebs-deployment
-          environment_name: Ebs-deployment-env
-          version_label: ${{ github.sha }}
-          existing_bucket_name: elasticbeanstalk-ap-northeast-1-670968082947
-          region: ${{ env.AWS_REGION }}
-          deployment_package: deploy.zip
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY}}
+          aws-region: ${{ env.AWS_REGION }}
+          
+          
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2  
+        with:
+          mask-password: 'true'
+           
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: latest
+          REPOSITORY: react-app-image
+        run: |
+          docker build -t $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG ./app
+          docker push $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ecs-task-def.json
+          container-name: react-image
+          image: ${{ steps.build-image.outputs.image }} 
+
+      - name: Deploy Amazon ECS task definition
+        env:
+          ECS_SERVICE_NAME: ecs-service
+          ECS_CLUSTER_NAME: ecs-cluster
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true 
+      
+    # steps:
+    #   - name: Checkout source code
+    #     uses: actions/checkout@v4
+
+    #   - name: Generate deployment package
+    #     run: zip -r deploy.zip . -x '*.git*'
+
+
+    #   - name: Deploy to EB
+    #     uses: einaregilsson/beanstalk-deploy@v21
+    #     with:
+    #       aws_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
+    #       aws_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+    #       application_name: ebs-deployment
+    #       environment_name: Ebs-deployment-env
+    #       version_label: ${{ github.sha }}
+    #       existing_bucket_name: elasticbeanstalk-ap-northeast-1-670968082947
+    #       region: ${{ env.AWS_REGION }}
+    #       deployment_package: deploy.zip
+    
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          aws configure set region ap-northeast-1
+          aws elasticbeanstalk create-application-version --application-name ebs-deployment --version-label dbaa675201acdf4be43ff625e3c8e3d93f7fad41 --source-bundle S3Bucket=elasticbeanstalk-ap-northeast-1-670968082947,
+          S3Key=my-react-app-image.zip
+          aws elasticbeanstalk update-environment --application-name ebs-deployment --environment-name Ebs-deployment-env --version-label 
+
