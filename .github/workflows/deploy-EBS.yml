@@ -67,26 +67,26 @@ jobs:
     #   - name: Checkout source code
     #     uses: actions/checkout@v4
 
-    #   - name: Generate deployment package
-    #     run: zip -r deploy.zip . -x '*.git*'
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
 
 
-    #   - name: Deploy to EB
-    #     uses: einaregilsson/beanstalk-deploy@v21
-    #     with:
-    #       aws_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
-    #       aws_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-    #       application_name: ebs-deployment
-    #       environment_name: Ebs-deployment-env
-    #       version_label: ${{ github.sha }}
-    #       existing_bucket_name: elasticbeanstalk-ap-northeast-1-670968082947
-    #       region: ${{ env.AWS_REGION }}
-    #       deployment_package: deploy.zip
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          application_name: ebs-deployment
+          environment_name: Ebs-deployment-env
+          version_label: ${{ github.sha }}
+          existing_bucket_name: elasticbeanstalk-ap-northeast-1-670968082947
+          region: ${{ env.AWS_REGION }}
+          deployment_package: deploy.zip
     
-      - name: Deploy to Elastic Beanstalk
-        run: |
-          aws configure set region ap-northeast-1
-          aws elasticbeanstalk create-application-version --application-name ebs-deployment --version-label dbaa675201acdf4be43ff625e3c8e3d93f7fad41 --source-bundle S3Bucket=elasticbeanstalk-ap-northeast-1-670968082947,
-          S3Key=my-react-app-image.zip
-          aws elasticbeanstalk update-environment --application-name ebs-deployment --environment-name Ebs-deployment-env --version-label 
+      # - name: Deploy to Elastic Beanstalk
+      #   run: |
+      #     aws configure set region ap-northeast-1
+      #     aws elasticbeanstalk create-application-version --application-name ebs-deployment --version-label dbaa675201acdf4be43ff625e3c8e3d93f7fad41 --source-bundle S3Bucket=elasticbeanstalk-ap-northeast-1-670968082947,
+      #     S3Key=my-react-app-image.zip
+      #     aws elasticbeanstalk update-environment --application-name ebs-deployment --environment-name Ebs-deployment-env --version-label 
 
