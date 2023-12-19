@@ -1,92 +1,44 @@
-name: Deploy to Amazon EBS
+name: Deploy to AWS Elastic Beanstalk
 
 on:
   push:
     branches:
-      - deployEBS
-  
+      - new-branch-for-ebs
+
 jobs:
   deploy:
     name: Deploy
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest
     
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-      AWS_REGION: 'ap-northeast-1' 
-      
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install --user awscli
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: 'ap-northeast-1'
 
-        with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY}}
-          aws-region: ${{ env.AWS_REGION }}
-          
-          
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2  
-        with:
-          mask-password: 'true'
-           
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: latest
-          REPOSITORY: react-app-image
+      - name: Configure AWS Elastic Beanstalk CLI
         run: |
-          docker build -t $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG ./app
-          docker push $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          eb --version  # Check the Elastic Beanstalk CLI version
+          eb init -p 'docker running on 64bit Amazon Linux 2023' -r 'ap-northeast-1' 'ebs-deployment2' # Initialize Elastic Beanstalk CLI
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: ecs-task-def.json
-          container-name: react-image
-          image: ${{ steps.build-image.outputs.image }} 
+      - name: Build and push Docker image to AWS ECR
+        run: |
+          $(aws ecr get-login --no-include-email --region ap-northeast-1)
+          docker build -t react-app-image .
+          docker tag react-app-image:latest 670968082947.dkr.ecr.ap-northeast-1.amazonaws.com/react-app-image:latest
+          docker push 670968082947.dkr.ecr.ap-northeast-1.amazonaws.com/react-app-image:latest
 
-      - name: Deploy Amazon ECS task definition
-        env:
-          ECS_SERVICE_NAME: ecs-service
-          ECS_CLUSTER_NAME: ecs-cluster
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE_NAME }}
-          cluster: ${{ env.ECS_CLUSTER_NAME }}
-          wait-for-service-stability: true 
-      
-    # steps:
-    #   - name: Checkout source code
-    #     uses: actions/checkout@v4
-
-      - name: Generate deployment package
-        run: zip -r deploy.zip . -x '*.git*'
-
-
-      - name: Deploy to EB
-        uses: einaregilsson/beanstalk-deploy@v21
-        with:
-          aws_access_key: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws_secret_key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          application_name: ebs-deployment
-          environment_name: Ebs-deployment-env
-          version_label: ${{ github.sha }}
-          existing_bucket_name: elasticbeanstalk-ap-northeast-1-670968082947
-          region: ${{ env.AWS_REGION }}
-          deployment_package: deploy.zip
-    
-      # - name: Deploy to Elastic Beanstalk
-      #   run: |
-      #     aws configure set region ap-northeast-1
-      #     aws elasticbeanstalk create-application-version --application-name ebs-deployment --version-label dbaa675201acdf4be43ff625e3c8e3d93f7fad41 --source-bundle S3Bucket=elasticbeanstalk-ap-northeast-1-670968082947,
-      #     S3Key=my-react-app-image.zip
-      #     aws elasticbeanstalk update-environment --application-name ebs-deployment --environment-name Ebs-deployment-env --version-label 
-
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          eb deploy Ebs-deployment-env2# Deploy your application to Elastic Beanstalk
