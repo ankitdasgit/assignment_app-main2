@@ -14,11 +14,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install AWS CLI
+      - name: Install AWS CLI and Elastic Beanstalk CLI
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip3 install --user awscli
+          sudo apt-get install python3-pip -y
+          pip3 install --upgrade pip
+          pip3 install awsebcli --upgrade --user
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -27,11 +28,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: 'ap-northeast-1'
 
-      - name: Configure AWS Elastic Beanstalk CLI
+      - name: Deploy to Elastic Beanstalk
         run: |
-          eb --version  # Check the Elastic Beanstalk CLI version
-          eb init -p 'docker running on 64bit Amazon Linux 2023' -r 'ap-northeast-1' 'ebs-deployment' # Initialize Elastic Beanstalk CLI
-
+          eb --version  # Check Elastic Beanstalk CLI version
+          eb init -p 'docker running on 64bit Amazon Linux 2023' -r 'ap-northeast-1' 'ebs-deployment'
+        env:
+          AWS_DEFAULT_REGION: ap-northeast-1
+          AWS_REGION: ap-northeast-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+          
       - name: Build and push Docker image to AWS ECR
         run: |
           $(aws ecr get-login --no-include-email --region ap-northeast-1)
