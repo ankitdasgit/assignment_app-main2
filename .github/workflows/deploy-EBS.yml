@@ -38,12 +38,16 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           
-      - name: Build and push Docker image to AWS ECR
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: latest
+          REPOSITORY: react-app-image
         run: |
-          $(aws ecr get-login --no-include-email --region ap-northeast-1)
-          docker build -t react-app-image .
-          docker tag react-app-image:latest 670968082947.dkr.ecr.ap-northeast-1.amazonaws.com/react-app-image:latest
-          docker push 670968082947.dkr.ecr.ap-northeast-1.amazonaws.com/react-app-image:latest
+          docker build -t $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG ./app
+          docker push $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Deploy to Elastic Beanstalk
         run: |
