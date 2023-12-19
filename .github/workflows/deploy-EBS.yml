@@ -62,4 +62,4 @@ jobs:
           
       - name: Deploy to Elastic Beanstalk
         run: |
-          eb deploy Ebs-deployment-env2# Deploy your application to Elastic Beanstalk
+          eb deploy Ebs-deployment-env# Deploy your application to Elastic Beanstalk
