@@ -38,20 +38,21 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
           
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2  
+        with:
+          mask-password: 'true'
+           
       - name: Build, tag, and push image to Amazon ECR
+        id: build-image
         env:
-          AWS_DEFAULT_REGION: ap-northeast-1
-          AWS_REGION: ap-northeast-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-          ECR_REGISTRY: 670968082947.dkr.ecr.ap-northeast-1.amazonaws.com/react-app-image   # Replace 'your-ecr-url' with your actual ECR registry URL
-          REPOSITORY: react-app-image
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: latest
-          
+          REPOSITORY: react-app-image
         run: |
           docker build -t $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG ./app
-          # docker push $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG
-          docker push 670968082947.dkr.ecr.ap-northeast-1.amazonaws.com/react-app-image/react-app-image:latest
+          docker push $ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
       
       # - name: Build and push Docker image to AWS ECR
