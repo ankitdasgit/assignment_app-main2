@@ -65,8 +65,3 @@ jobs:
       - name: Deploy to Elastic Beanstalk
         run: |
           eb deploy Ebs-deployment-env
-          env:
-          AWS_DEFAULT_REGION: ap-northeast-1
-          AWS_REGION: ap-northeast-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
